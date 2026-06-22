@@ -56,16 +56,7 @@ class LeaveGameTable
             $this->firebaseService->removePlayerFromRoom(
                 $game->firebase_room_id,
                 $user->id
-            );
-
-            // If no players left, cancel the game entirely
-            if ($game->fresh()->players()->count() === 0) {
-                $game->update(['status' => 'cancelled']);
-                $this->firebaseService->updateRoomStatus(
-                    $game->firebase_room_id,
-                    'cancelled'
-                );
-            }
+            );   
         });
     }
 }
