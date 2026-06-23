@@ -10,6 +10,10 @@ use App\Http\Controllers\Wallet\WithdrawalController;
 use App\Http\Controllers\Leaderboard\LeaderboardController;
 use App\Http\Controllers\Auth\FirebaseTokenController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\AdminGameController;
+use App\Http\Controllers\Admin\AdminWithdrawalController;
+use App\Http\Controllers\Admin\AdminFraudFlagController;
+use App\Http\Controllers\Admin\AdminUserController;
 
 Route::prefix('v1')->group(function () {
 
@@ -40,11 +44,31 @@ Route::prefix('v1')->group(function () {
 			Route::post('/{game}/leave', [GameTableController::class, 'leave']);
         });
 
-        // Games — admin only
-        Route::middleware('admin')->prefix('admin/games')->group(function () {
-            Route::post('/create',           [GameTableController::class, 'create']);
-            Route::post('/{game}/cancel',    [GameTableController::class, 'cancel']);
-        });
+        // Admin only
+Route::middleware('admin')->prefix('admin')->group(function () {
+
+    Route::prefix('games')->group(function () {
+        Route::get('/',               [AdminGameController::class, 'index']);
+        Route::post('/create',        [GameTableController::class, 'create']);
+        Route::post('/{game}/cancel', [GameTableController::class, 'cancel']);
+    });
+
+    Route::prefix('withdrawals')->group(function () {
+        Route::get('/',                       [AdminWithdrawalController::class, 'index']);
+        Route::post('/{withdrawal}/approve',  [AdminWithdrawalController::class, 'approve']);
+        Route::post('/{withdrawal}/reject',   [AdminWithdrawalController::class, 'reject']);
+    });
+
+    Route::prefix('fraud-flags')->group(function () {
+        Route::get('/',                 [AdminFraudFlagController::class, 'index']);
+        Route::post('/{flag}/resolve',  [AdminFraudFlagController::class, 'resolve']);
+    });
+
+    Route::prefix('users')->group(function () {
+        Route::get('/',                   [AdminUserController::class, 'index']);
+        Route::post('/{user}/toggle-ban', [AdminUserController::class, 'toggleBan']);
+    });
+});
 
     });
 

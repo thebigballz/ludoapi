@@ -5,6 +5,7 @@ namespace App\Domain\Mpesa\Actions;
 use App\Domain\Mpesa\DTOs\StkCallbackDTO;
 use App\Domain\Wallet\Actions\CreditWallet;
 use App\Domain\Wallet\DTOs\TransactionDTO;
+use App\Jobs\FlagSuspiciousAccount;
 use App\Models\MpesaTransaction;
 use Illuminate\Support\Facades\Log;
 
@@ -22,7 +23,6 @@ class HandleStkCallback
             return;
         }
 
-        // Idempotency — ignore if already processed
         if ($mpesaTx->status !== 'pending') {
             return;
         }
@@ -33,7 +33,6 @@ class HandleStkCallback
             'raw_callback' => $dto->rawPayload,
         ]);
 
-        // Only credit wallet on success
         if ($dto->resultCode !== 0) {
             Log::info('STK push failed by user', ['desc' => $dto->resultDesc]);
             return;
@@ -49,5 +48,7 @@ class HandleStkCallback
             description:     'MPESA deposit — ' . $dto->mpesaReceiptNumber,
             transactionable: $mpesaTx,
         ));
+
+        FlagSuspiciousAccount::dispatch($mpesaTx->user_id); // <-- added
     }
 }

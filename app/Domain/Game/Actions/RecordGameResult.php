@@ -5,6 +5,7 @@ namespace App\Domain\Game\Actions;
 use App\Domain\Game\DTOs\GameResultDTO;
 use App\Domain\Game\Exceptions\InvalidGameStateException;
 use App\Domain\Wallet\Actions\ReleaseEscrow;
+use App\Jobs\FlagSuspiciousAccount;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -43,8 +44,9 @@ class RecordGameResult
                 ->where('user_id', '!=', $winner->id)
                 ->update(['result' => 'loser']);
 
-            // Release pot to winner
             $this->releaseEscrow->execute($game, $winner->wallet);
+
+            FlagSuspiciousAccount::dispatch($winner->id); // <-- added
 
             return $game->fresh();
         });

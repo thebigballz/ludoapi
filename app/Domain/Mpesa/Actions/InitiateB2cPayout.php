@@ -6,6 +6,7 @@ use App\Domain\Mpesa\DTOs\B2cPayoutDTO;
 use App\Domain\Wallet\Actions\DebitWallet;
 use App\Domain\Wallet\DTOs\TransactionDTO;
 use App\Domain\Wallet\Exceptions\InsufficientBalanceException;
+use App\Jobs\FlagSuspiciousAccount;
 use App\Models\MpesaTransaction;
 use App\Models\User;
 use App\Services\MpesaService;
@@ -27,7 +28,6 @@ class InitiateB2cPayout
         $user = User::findOrFail($dto->userId);
 
         return DB::transaction(function () use ($dto, $user) {
-            // Debit wallet first — if this fails, nothing is sent to Safaricom
             $this->debitWallet->execute(new TransactionDTO(
                 wallet:      $user->wallet,
                 type:        'withdrawal',
@@ -42,7 +42,7 @@ class InitiateB2cPayout
                 reference: 'LUDO_WD_' . strtoupper(uniqid()),
             );
 
-            return MpesaTransaction::create([
+            $mpesaTx = MpesaTransaction::create([
                 'user_id'             => $dto->userId,
                 'type'                => 'b2c',
                 'merchant_request_id' => $response['ConversationID'],
@@ -50,6 +50,10 @@ class InitiateB2cPayout
                 'phone'               => $dto->phone,
                 'status'              => 'pending',
             ]);
+
+            FlagSuspiciousAccount::dispatch($dto->userId); // <-- added
+
+            return $mpesaTx;
         });
     }
 }
