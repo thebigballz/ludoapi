@@ -217,6 +217,7 @@ exports.handleTurnTimeout = onValueWritten(
       current_turn: playerKeys[nextIndex],
       dice_roll:    null,
       phase:        "rolling",
+      roll_history: [],   // add this
     });
 
     console.log(`Turn timeout — skipped to: ${playerKeys[nextIndex]}`);

@@ -130,22 +130,18 @@ class FirebaseService
     }
 
     public function advanceTurn(string $roomId, int $nextPlayerUserId): void
-    {
-        $this->roomRef($roomId)->update([
-            'state/current_turn' => "user_{$nextPlayerUserId}",
-            'state/dice_roll'    => null,
-            'state/phase'        => 'rolling',
-        ]);
+{
+    $this->roomRef($roomId)->update([
+        'state/current_turn'  => "user_{$nextPlayerUserId}",
+        'state/dice_roll'     => null,
+        'state/phase'         => 'rolling',
+        'state/roll_history'  => [],   // add this
+    ]);
 
-        // Increment turn number
-        $current = $this->roomRef($roomId)
-            ->getChild('state/turn_number')
-            ->getValue() ?? 0;
-
-        $this->roomRef($roomId)
-            ->getChild('state/turn_number')
-            ->set($current + 1);
-    }
+    // Increment turn number
+    $current = $this->roomRef($roomId)->getChild('state/turn_number')->getValue() ?? 0;
+    $this->roomRef($roomId)->getChild('state/turn_number')->set($current + 1);
+}
 
     public function setWinner(string $roomId, int $userId): void
     {
