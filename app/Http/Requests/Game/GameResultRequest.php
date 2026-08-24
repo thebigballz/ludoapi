@@ -8,9 +8,14 @@ class GameResultRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Later: verify this request comes from Firebase Cloud Functions
-        // using a shared secret header
-        return true;
+        $secret = (string) $this->header('X-App-Secret', '');
+        $expected = (string) config('app.firebase_secret', '');
+
+        if ($secret === '' || $expected === '') {
+            return false;
+        }
+
+        return hash_equals($expected, $secret);
     }
 
     public function rules(): array
@@ -21,10 +26,4 @@ class GameResultRequest extends FormRequest
             'firebase_room_id' => ['required', 'string'],
         ];
     }
-	
-	public function authorize(): bool
-{
-    $secret = request()->header('X-App-Secret');
-    return $secret === config('app.firebase_secret');
-}
 }
