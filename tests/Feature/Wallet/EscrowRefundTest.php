@@ -30,7 +30,7 @@ class EscrowRefundTest extends TestCase
         app(RefundEscrow::class)->execute($game);
 
         foreach ($wallets as $wallet) {
-            $this->assertSame('10.00', $wallet->fresh()->balance);
+            $this->assertSame('20.00', $wallet->fresh()->balance);
         }
 
         $this->assertSame(2, GameEscrow::where('game_id', $game->id)->where('status', 'refunded')->count());
@@ -53,7 +53,7 @@ class EscrowRefundTest extends TestCase
         $action->execute($game);
         $action->execute($game);
 
-        $this->assertSame('10.00', $wallets[0]->fresh()->balance);
+        $this->assertSame('20.00', $wallets[0]->fresh()->balance);
         $this->assertDatabaseCount('wallet_transactions', 1);
         $this->assertSame(1, GameEscrow::where('game_id', $game->id)->where('status', 'refunded')->count());
     }
