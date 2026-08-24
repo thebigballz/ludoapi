@@ -19,17 +19,22 @@ class RecordGameResult
      */
     public function execute(GameResultDTO $dto): Game
     {
-        $game = Game::where('id', $dto->gameId)
-            ->where('firebase_room_id', $dto->firebaseRoomId)
-            ->firstOrFail();
+        return DB::transaction(function () use ($dto) {
+            $game = Game::where('id', $dto->gameId)
+                ->where('firebase_room_id', $dto->firebaseRoomId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($game->status !== 'active') {
-            throw new InvalidGameStateException('Game is not active.');
-        }
+            if ($game->status !== 'active') {
+                throw new InvalidGameStateException('Game is not active.');
+            }
 
-        $winner = User::findOrFail($dto->winnerId);
+            if (! $game->hasPlayer($dto->winnerId)) {
+                throw new InvalidGameStateException('Winner is not a player in this game.');
+            }
 
-        return DB::transaction(function () use ($game, $winner) {
+            $winner = User::findOrFail($dto->winnerId);
+
             $game->update([
                 'status'    => 'finished',
                 'winner_id' => $winner->id,
@@ -46,7 +51,7 @@ class RecordGameResult
 
             $this->releaseEscrow->execute($game, $winner->wallet);
 
-            FlagSuspiciousAccount::dispatch($winner->id); // <-- added
+            FlagSuspiciousAccount::dispatch($winner->id);
 
             return $game->fresh();
         });
