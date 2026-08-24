@@ -26,7 +26,7 @@ class DebitWallet
                 ?? $dto->wallet->refresh();
 
             $balanceBefore = Money::toMinor($wallet->balance);
-            $amount = Money::toMinor($dto->amount);
+            $amount = Money::assertPositive($dto->amount);
 
             if ($balanceBefore < $amount) {
                 throw new InsufficientBalanceException();
