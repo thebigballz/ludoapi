@@ -35,5 +35,16 @@ final class Money
         return ($negative ? '-' : '') . $whole . '.' . str_pad((string) $fraction, 2, '0', STR_PAD_LEFT);
     }
 
+    public static function assertPositive(string|int|float $amount): int
+    {
+        $minor = self::toMinor($amount);
+
+        if ($minor <= 0) {
+            throw new InvalidArgumentException('Money amount must be greater than zero.');
+        }
+
+        return $minor;
+    }
+
     private function __construct() {}
 }
