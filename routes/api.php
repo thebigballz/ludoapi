@@ -21,12 +21,15 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', RegisterController::class);
     Route::post('/auth/login',    LoginController::class);
 
+    // Internal — called by Firebase Cloud Functions and authenticated by X-App-Secret.
+    Route::post('/games/result', [GameTableController::class, 'result']);
+
     // Authenticated
     Route::middleware(['auth:sanctum', 'banned'])->group(function () {
 
         Route::post('/auth/logout', LogoutController::class);
-		Route::get('/leaderboard', [LeaderboardController::class, 'index']);
-		Route::post('/auth/firebase-token', FirebaseTokenController::class);
+        Route::get('/leaderboard', [LeaderboardController::class, 'index']);
+        Route::post('/auth/firebase-token', FirebaseTokenController::class);
 
         // Wallet
         Route::prefix('wallet')->group(function () {
@@ -40,36 +43,34 @@ Route::prefix('v1')->group(function () {
         Route::prefix('games')->group(function () {
             Route::get('/',              [GameTableController::class, 'index']);
             Route::post('/join',         [GameTableController::class, 'join']);
-            Route::post('/result',       [GameTableController::class, 'result']);
-			Route::post('/{game}/leave', [GameTableController::class, 'leave']);
+            Route::post('/{game}/leave', [GameTableController::class, 'leave']);
         });
 
         // Admin only
-Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::middleware('admin')->prefix('admin')->group(function () {
 
-    Route::prefix('games')->group(function () {
-        Route::get('/',               [AdminGameController::class, 'index']);
-        Route::post('/create',        [GameTableController::class, 'create']);
-        Route::post('/{game}/cancel', [GameTableController::class, 'cancel']);
-    });
+            Route::prefix('games')->group(function () {
+                Route::get('/',               [AdminGameController::class, 'index']);
+                Route::post('/create',        [GameTableController::class, 'create']);
+                Route::post('/{game}/cancel', [GameTableController::class, 'cancel']);
+            });
 
-    Route::prefix('withdrawals')->group(function () {
-        Route::get('/',                       [AdminWithdrawalController::class, 'index']);
-        Route::post('/{withdrawal}/approve',  [AdminWithdrawalController::class, 'approve']);
-        Route::post('/{withdrawal}/reject',   [AdminWithdrawalController::class, 'reject']);
-    });
+            Route::prefix('withdrawals')->group(function () {
+                Route::get('/',                      [AdminWithdrawalController::class, 'index']);
+                Route::post('/{withdrawal}/approve', [AdminWithdrawalController::class, 'approve']);
+                Route::post('/{withdrawal}/reject',  [AdminWithdrawalController::class, 'reject']);
+            });
 
-    Route::prefix('fraud-flags')->group(function () {
-        Route::get('/',                 [AdminFraudFlagController::class, 'index']);
-        Route::post('/{flag}/resolve',  [AdminFraudFlagController::class, 'resolve']);
-    });
+            Route::prefix('fraud-flags')->group(function () {
+                Route::get('/',                [AdminFraudFlagController::class, 'index']);
+                Route::post('/{flag}/resolve', [AdminFraudFlagController::class, 'resolve']);
+            });
 
-    Route::prefix('users')->group(function () {
-        Route::get('/',                   [AdminUserController::class, 'index']);
-        Route::post('/{user}/toggle-ban', [AdminUserController::class, 'toggleBan']);
-    });
-});
-
+            Route::prefix('users')->group(function () {
+                Route::get('/',                   [AdminUserController::class, 'index']);
+                Route::post('/{user}/toggle-ban', [AdminUserController::class, 'toggleBan']);
+            });
+        });
     });
 
 });
