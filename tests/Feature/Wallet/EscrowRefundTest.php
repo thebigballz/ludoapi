@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Wallet;
 
-use App\Domain\Game\Exceptions\InvalidGameStateException;
 use App\Domain\Wallet\Actions\RefundEscrow;
 use App\Models\Game;
 use App\Models\GameEscrow;
@@ -39,7 +38,7 @@ class EscrowRefundTest extends TestCase
         $this->assertDatabaseCount('wallet_transactions', 2);
     }
 
-    public function test_it_rejects_a_second_refund_without_creating_another_transaction(): void
+    public function test_it_is_idempotent_when_called_again_without_creating_another_transaction(): void
     {
         [$game, $wallets] = $this->createCancelledGame();
 
@@ -52,12 +51,11 @@ class EscrowRefundTest extends TestCase
 
         $action = app(RefundEscrow::class);
         $action->execute($game);
-
-        $this->expectException(InvalidGameStateException::class);
         $action->execute($game);
 
         $this->assertSame('10.00', $wallets[0]->fresh()->balance);
         $this->assertDatabaseCount('wallet_transactions', 1);
+        $this->assertSame(1, GameEscrow::where('game_id', $game->id)->where('status', 'refunded')->count());
     }
 
     private function createCancelledGame(): array
