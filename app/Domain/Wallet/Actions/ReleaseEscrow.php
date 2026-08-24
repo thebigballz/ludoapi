@@ -2,11 +2,12 @@
 
 namespace App\Domain\Wallet\Actions;
 
-use App\Domain\Wallet\DTOs\TransactionDTO;
 use App\Domain\Game\Exceptions\InvalidGameStateException;
+use App\Domain\Wallet\DTOs\TransactionDTO;
 use App\Models\Game;
 use App\Models\GameEscrow;
 use App\Models\Wallet;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 class ReleaseEscrow
@@ -16,9 +17,8 @@ class ReleaseEscrow
     /**
      * Release all held stakes for a completed game and credit the winner.
      *
-     * This action is deliberately idempotent at the game level: callers must
-     * settle an active game while holding its row lock. A finished game must
-     * never release escrow a second time.
+     * A finished game is settled under a row lock and the payout reference is
+     * deterministic, so the same game cannot create a second win transaction.
      *
      * @throws InvalidGameStateException
      */
@@ -42,8 +42,10 @@ class ReleaseEscrow
                 throw new InvalidGameStateException('No held escrow remains for this game.');
             }
 
-            $totalPot = $escrows->sum('amount');
-            $platformFee = $lockedGame->platform_fee;
+            $totalPot = $escrows->sum(
+                fn (GameEscrow $escrow) => Money::toMinor($escrow->amount)
+            );
+            $platformFee = Money::toMinor($lockedGame->platform_fee);
             $payout = $totalPot - $platformFee;
 
             if ($payout < 0) {
@@ -58,11 +60,10 @@ class ReleaseEscrow
                 throw new InvalidGameStateException('Escrow state changed while settling the game.');
             }
 
-            // Deterministic reference prevents a second payout for the same game.
             $this->creditWallet->execute(new TransactionDTO(
                 wallet:          $winnerWallet,
                 type:            'win',
-                amount:          $payout,
+                amount:          Money::fromMinor($payout),
                 reference:       'win_game_' . $lockedGame->id,
                 description:     "Winnings from game #{$lockedGame->id}",
             ));
