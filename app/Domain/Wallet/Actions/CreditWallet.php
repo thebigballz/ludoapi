@@ -24,7 +24,7 @@ class CreditWallet
                 ?? $dto->wallet->refresh();
 
             $balanceBefore = Money::toMinor($wallet->balance);
-            $amount = Money::toMinor($dto->amount);
+            $amount = Money::assertPositive($dto->amount);
             $balanceAfter = $balanceBefore + $amount;
 
             $transaction = WalletTransaction::create([
