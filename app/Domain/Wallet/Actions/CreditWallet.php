@@ -5,6 +5,7 @@ namespace App\Domain\Wallet\Actions;
 use App\Domain\Wallet\DTOs\TransactionDTO;
 use App\Domain\Wallet\Exceptions\DuplicateTransactionException;
 use App\Models\WalletTransaction;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 class CreditWallet
@@ -14,41 +15,39 @@ class CreditWallet
      */
     public function execute(TransactionDTO $dto): WalletTransaction
     {
-        // Block duplicate references before opening the transaction
         if (WalletTransaction::where('reference', $dto->reference)->exists()) {
             throw new DuplicateTransactionException();
         }
 
         return DB::transaction(function () use ($dto) {
-            // Lock the wallet row for this transaction
             $wallet = $dto->wallet->lockForUpdate()->first()
                 ?? $dto->wallet->refresh();
 
-            $balanceBefore = (float) $wallet->balance;
-            $balanceAfter  = $balanceBefore + (float) $dto->amount;
+            $balanceBefore = Money::toMinor($wallet->balance);
+            $amount = Money::toMinor($dto->amount);
+            $balanceAfter = $balanceBefore + $amount;
 
             $transaction = WalletTransaction::create([
                 'wallet_id'            => $wallet->id,
                 'user_id'              => $wallet->user_id,
                 'type'                 => $dto->type,
                 'status'               => 'completed',
-                'amount'               => $dto->amount,
-                'balance_before'       => $balanceBefore,
-                'balance_after'        => $balanceAfter,
+                'amount'               => Money::fromMinor($amount),
+                'balance_before'       => Money::fromMinor($balanceBefore),
+                'balance_after'        => Money::fromMinor($balanceAfter),
                 'reference'            => $dto->reference,
                 'description'          => $dto->description,
                 'transactionable_type' => $dto->transactionable ? get_class($dto->transactionable) : null,
                 'transactionable_id'   => $dto->transactionable?->id,
             ]);
 
-            // Update wallet balance and running total
             $wallet->update([
-                'balance'         => $balanceAfter,
+                'balance'         => Money::fromMinor($balanceAfter),
                 'total_deposited' => $dto->type === 'deposit'
-                    ? $wallet->total_deposited + $dto->amount
+                    ? Money::fromMinor(Money::toMinor($wallet->total_deposited) + $amount)
                     : $wallet->total_deposited,
                 'total_won'       => $dto->type === 'win'
-                    ? $wallet->total_won + $dto->amount
+                    ? Money::fromMinor(Money::toMinor($wallet->total_won) + $amount)
                     : $wallet->total_won,
             ]);
 
