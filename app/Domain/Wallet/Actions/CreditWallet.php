@@ -4,6 +4,7 @@ namespace App\Domain\Wallet\Actions;
 
 use App\Domain\Wallet\DTOs\TransactionDTO;
 use App\Domain\Wallet\Exceptions\DuplicateTransactionException;
+use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +21,9 @@ class CreditWallet
         }
 
         return DB::transaction(function () use ($dto) {
-            $wallet = $dto->wallet->lockForUpdate()->first()
-                ?? $dto->wallet->refresh();
+            $wallet = Wallet::whereKey($dto->wallet->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             $balanceBefore = Money::toMinor($wallet->balance);
             $amount = Money::assertPositive($dto->amount);
