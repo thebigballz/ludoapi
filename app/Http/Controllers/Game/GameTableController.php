@@ -1,11 +1,14 @@
 <?php
 
 namespace App\Http\Controllers\Game;
-use App\Domain\Game\Actions\RollDice;
+
 use App\Domain\Game\Actions\CancelGame;
 use App\Domain\Game\Actions\CreateGameTable;
 use App\Domain\Game\Actions\JoinGameTable;
+use App\Domain\Game\Actions\LeaveGameTable;
+use App\Domain\Game\Actions\MovePawn;
 use App\Domain\Game\Actions\RecordGameResult;
+use App\Domain\Game\Actions\RollDice;
 use App\Domain\Game\DTOs\CreateTableDTO;
 use App\Domain\Game\DTOs\GameResultDTO;
 use App\Domain\Game\Exceptions\GameAlreadyStartedException;
@@ -16,9 +19,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Game\CreateTableRequest;
 use App\Http\Requests\Game\GameResultRequest;
 use App\Http\Requests\Game\JoinTableRequest;
+use App\Http\Requests\Game\MovePawnRequest;
 use App\Http\Resources\GameResource;
 use App\Models\Game;
-use App\Domain\Game\Actions\LeaveGameTable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,7 +32,8 @@ class GameTableController extends Controller
         private readonly JoinGameTable    $joinGameTable,
         private readonly CancelGame       $cancelGame,
         private readonly RecordGameResult $recordGameResult,
-        private readonly RollDice $rollDice,
+        private readonly RollDice         $rollDice,
+        private readonly MovePawn         $movePawn,
     ) {}
 
     // List open tables — optionally filter by stake amount
@@ -79,17 +83,17 @@ class GameTableController extends Controller
             'game'    => new GameResource($game->fresh()->load('players')),
         ]);
     }
-	
-	public function leave(Request $request, Game $game): JsonResponse
-{
-    try {
-        app(LeaveGameTable::class)->execute($game, $request->user());
-    } catch (InvalidGameStateException $e) {
-        return response()->json(['message' => $e->getMessage()], 422);
-    }
 
-    return response()->json(['message' => 'Left table successfully.']);
-}
+    public function leave(Request $request, Game $game): JsonResponse
+    {
+        try {
+            $this->leaveGameTable->execute($game, $request->user());
+        } catch (InvalidGameStateException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => 'Left table successfully.']);
+    }
 
     // Record game result — called by Firebase Cloud Function
     public function result(GameResultRequest $request): JsonResponse
@@ -121,21 +125,47 @@ class GameTableController extends Controller
     }
 
     public function roll(Request $request, Game $game): JsonResponse
-{
-    try {
-        $roll = $this->rollDice->execute(
-            $game,
-            $request->user()
-        );
-    } catch (InvalidGameStateException $e) {
+    {
+        try {
+            $roll = $this->rollDice->execute(
+                $game,
+                $request->user()
+            );
+        } catch (InvalidGameStateException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
         return response()->json([
-            'message' => $e->getMessage(),
-        ], 422);
+            'message' => 'Dice rolled successfully.',
+            'dice_roll' => $roll,
+        ]);
     }
 
-    return response()->json([
-        'message' => 'Dice rolled successfully.',
-        'dice_roll' => $roll,
-    ]);
-}
+    public function move(MovePawnRequest $request, Game $game): JsonResponse
+    {
+        try {
+            $result = $this->movePawn->execute(
+                $game,
+                $request->user(),
+                $request->integer('pawn_index'),
+            );
+        } catch (InvalidGameStateException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Pawn moved successfully.',
+            'move' => [
+                'pawn' => $result['pawn'],
+                'from' => $result['from'],
+                'to' => $result['to'],
+                'captured' => $result['captured'],
+            ],
+            'game' => new GameResource($result['game']),
+        ]);
+    }
 }
