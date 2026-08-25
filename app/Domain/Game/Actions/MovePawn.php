@@ -196,6 +196,7 @@ class MovePawn
                 $this->firebaseService->advanceTurn(
                     $game->firebase_room_id,
                     $nextPlayer->user_id,
+                    $game->turn_number,
                 );
             }
 
