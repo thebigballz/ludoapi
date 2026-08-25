@@ -12,7 +12,16 @@ class GamePlayer extends Model
         'color',
         'result',
         'final_position',
+        'pawn_positions',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'pawn_positions' => 'array',
+            'final_position' => 'integer',
+        ];
+    }
 
     public function game()
     {
