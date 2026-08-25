@@ -17,21 +17,17 @@ use App\Http\Controllers\Admin\AdminUserController;
 
 Route::prefix('v1')->group(function () {
 
-    // Public
     Route::post('/auth/register', RegisterController::class);
     Route::post('/auth/login',    LoginController::class);
 
-    // Internal — called by Firebase Cloud Functions and authenticated by X-App-Secret.
     Route::post('/games/result', [GameTableController::class, 'result']);
 
-    // Authenticated
     Route::middleware(['auth:sanctum', 'banned'])->group(function () {
 
         Route::post('/auth/logout', LogoutController::class);
         Route::get('/leaderboard', [LeaderboardController::class, 'index']);
         Route::post('/auth/firebase-token', FirebaseTokenController::class);
 
-        // Wallet
         Route::prefix('wallet')->group(function () {
             Route::get('/',             [WalletController::class, 'balance']);
             Route::get('/transactions', [WalletController::class, 'transactions']);
@@ -39,16 +35,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/withdraw',    WithdrawalController::class);
         });
 
-        // Games — users
         Route::prefix('games')->group(function () {
             Route::get('/',              [GameTableController::class, 'index']);
             Route::post('/join',         [GameTableController::class, 'join']);
             Route::post('/{game}/leave', [GameTableController::class, 'leave']);
             Route::post('/{game}/roll',  [GameTableController::class, 'roll']);
             Route::post('/{game}/move',  [GameTableController::class, 'move']);
+            Route::post('/{game}/skip',  [GameTableController::class, 'skip']);
         });
 
-        // Admin only
         Route::middleware('admin')->prefix('admin')->group(function () {
 
             Route::prefix('games')->group(function () {
