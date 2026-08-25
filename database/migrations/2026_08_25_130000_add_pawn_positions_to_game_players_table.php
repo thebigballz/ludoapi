@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('game_players', function (Blueprint $table) {
             $table->json('pawn_positions')
-                ->default(json_encode([-1, -1, -1, -1]))
+                ->nullable()
                 ->after('final_position');
         });
     }
