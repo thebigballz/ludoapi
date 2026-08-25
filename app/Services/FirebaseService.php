@@ -48,7 +48,6 @@ class FirebaseService
                 'last_seen'    => $this->timestamp(),
             ]);
 
-        // Initialise pawns at home position
         $this->roomRef($roomId)
             ->getChild("pawns/user_{$userId}")
             ->set([
@@ -58,25 +57,25 @@ class FirebaseService
                 'p4' => -1,
             ]);
     }
-	
-	public function removePlayerFromRoom(string $roomId, int $userId): void
-{
-    $this->roomRef($roomId)
-        ->getChild("players/user_{$userId}")
-        ->remove();
 
-    $this->roomRef($roomId)
-        ->getChild("pawns/user_{$userId}")
-        ->remove();
-}
+    public function removePlayerFromRoom(string $roomId, int $userId): void
+    {
+        $this->roomRef($roomId)
+            ->getChild("players/user_{$userId}")
+            ->remove();
+
+        $this->roomRef($roomId)
+            ->getChild("pawns/user_{$userId}")
+            ->remove();
+    }
 
     public function startRoom(string $roomId, int $firstPlayerUserId): void
     {
         $this->roomRef($roomId)->update([
-            'meta/status'          => 'active',
-            'state/phase'          => 'rolling',
-            'state/current_turn'   => "user_{$firstPlayerUserId}",
-            'state/turn_number'    => 1,
+            'meta/status'        => 'active',
+            'state/phase'        => 'rolling',
+            'state/current_turn' => "user_{$firstPlayerUserId}",
+            'state/turn_number'  => 1,
         ]);
     }
 
@@ -111,11 +110,11 @@ class FirebaseService
 
     public function recordMove(
         string $roomId,
-        int    $userId,
-        int    $diceRoll,
+        int $userId,
+        int $diceRoll,
         string $pawn,
-        int    $from,
-        int    $to
+        int $from,
+        int $to
     ): void {
         $this->roomRef($roomId)
             ->getChild('moves')
@@ -129,26 +128,22 @@ class FirebaseService
             ]);
     }
 
-    public function advanceTurn(string $roomId, int $nextPlayerUserId): void
-{
-    $this->roomRef($roomId)->update([
-        'state/current_turn'  => "user_{$nextPlayerUserId}",
-        'state/dice_roll'     => null,
-        'state/phase'         => 'rolling',
-        'state/roll_history'  => [],   // add this
-    ]);
-
-    // Increment turn number
-    $current = $this->roomRef($roomId)->getChild('state/turn_number')->getValue() ?? 0;
-    $this->roomRef($roomId)->getChild('state/turn_number')->set($current + 1);
-}
+    public function advanceTurn(string $roomId, int $nextPlayerUserId, int $turnNumber): void
+    {
+        $this->roomRef($roomId)->update([
+            'state/current_turn' => "user_{$nextPlayerUserId}",
+            'state/dice_roll'    => null,
+            'state/phase'        => 'rolling',
+            'state/turn_number'  => $turnNumber,
+        ]);
+    }
 
     public function setWinner(string $roomId, int $userId): void
     {
         $this->roomRef($roomId)->update([
-            'meta/status'    => 'finished',
-            'state/phase'    => 'finished',
-            'state/winner'   => "user_{$userId}",
+            'meta/status'  => 'finished',
+            'state/phase'  => 'finished',
+            'state/winner' => "user_{$userId}",
         ]);
     }
 
