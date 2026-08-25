@@ -16,9 +16,9 @@ class ServerAuthoritativeMoveTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_player_can_move_a_pawn_from_home_on_a_six(): void
+    public function test_player_can_move_a_pawn_from_home_on_a_six_and_keep_the_turn(): void
     {
-        [$game, $currentPlayer, $otherPlayer] = $this->activeGame();
+        [$game, $currentPlayer] = $this->activeGame();
 
         $game->update([
             'dice_roll' => 6,
@@ -35,9 +35,10 @@ class ServerAuthoritativeMoveTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame(0, $player->pawn_positions[0]);
-        $this->assertSame($otherPlayer->id, $result['game']->current_turn_user_id);
+        $this->assertSame($currentPlayer->id, $result['game']->current_turn_user_id);
         $this->assertSame('rolling', $result['game']->phase);
-        $this->assertSame(2, $result['game']->turn_number);
+        $this->assertSame(1, $result['game']->turn_number);
+        $this->assertSame(2, $result['game']->state_version);
     }
 
     public function test_player_cannot_move_a_pawn_from_home_without_a_six(): void
@@ -88,9 +89,10 @@ class ServerAuthoritativeMoveTest extends TestCase
             ->where('user_id', $currentPlayer->id)
             ->update(['pawn_positions' => [2, -1, -1, -1]]);
 
+        // Green entry is 13, so relative position 42 lands on global square 3.
         GamePlayer::where('game_id', $game->id)
             ->where('user_id', $otherPlayer->id)
-            ->update(['pawn_positions' => [0, -1, -1, -1]]);
+            ->update(['pawn_positions' => [42, -1, -1, -1]]);
 
         $game->update([
             'dice_roll' => 1,
