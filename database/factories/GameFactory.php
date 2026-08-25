@@ -17,6 +17,11 @@ class GameFactory extends Factory
             'stake_amount' => '100.00',
             'platform_fee' => '10.00',
             'winner_id' => null,
+            'current_turn_user_id' => null,
+            'turn_number' => 0,
+            'phase' => null,
+            'dice_roll' => null,
+            'state_version' => 0,
             'started_at' => null,
             'ended_at' => null,
         ];
