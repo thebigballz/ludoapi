@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/',              [GameTableController::class, 'index']);
             Route::post('/join',         [GameTableController::class, 'join']);
             Route::post('/{game}/leave', [GameTableController::class, 'leave']);
+            Route::post('/{game}/roll',  [GameTableController::class, 'roll']);
         });
 
         // Admin only

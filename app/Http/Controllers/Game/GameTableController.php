@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Game;
-
+use App\Domain\Game\Actions\RollDice;
 use App\Domain\Game\Actions\CancelGame;
 use App\Domain\Game\Actions\CreateGameTable;
 use App\Domain\Game\Actions\JoinGameTable;
@@ -29,6 +29,7 @@ class GameTableController extends Controller
         private readonly JoinGameTable    $joinGameTable,
         private readonly CancelGame       $cancelGame,
         private readonly RecordGameResult $recordGameResult,
+        private readonly RollDice $rollDice,
     ) {}
 
     // List open tables — optionally filter by stake amount
@@ -118,4 +119,23 @@ class GameTableController extends Controller
 
         return response()->json(['message' => 'Game cancelled and stakes refunded.']);
     }
+
+    public function roll(Request $request, Game $game): JsonResponse
+{
+    try {
+        $roll = $this->rollDice->execute(
+            $game,
+            $request->user()
+        );
+    } catch (InvalidGameStateException $e) {
+        return response()->json([
+            'message' => $e->getMessage(),
+        ], 422);
+    }
+
+    return response()->json([
+        'message' => 'Dice rolled successfully.',
+        'dice_roll' => $roll,
+    ]);
+}
 }
