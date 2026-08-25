@@ -30,6 +30,7 @@ class GameTableController extends Controller
     public function __construct(
         private readonly CreateGameTable  $createGameTable,
         private readonly JoinGameTable    $joinGameTable,
+        private readonly LeaveGameTable   $leaveGameTable,
         private readonly CancelGame       $cancelGame,
         private readonly RecordGameResult $recordGameResult,
         private readonly RollDice         $rollDice,
