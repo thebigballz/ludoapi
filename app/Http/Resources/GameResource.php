@@ -15,13 +15,19 @@ class GameResource extends JsonResource
             'stake_amount'     => number_format($this->stake_amount, 2),
             'platform_fee'     => number_format($this->platform_fee, 2),
             'winner_id'        => $this->winner_id,
+            'current_turn_user_id' => $this->current_turn_user_id,
+            'turn_number'      => $this->turn_number,
+            'phase'            => $this->phase,
+            'dice_roll'        => $this->dice_roll,
+            'state_version'    => $this->state_version,
             'started_at'       => $this->started_at?->toDateTimeString(),
             'ended_at'         => $this->ended_at?->toDateTimeString(),
             'players'          => $this->whenLoaded('players', fn () =>
                 $this->players->map(fn ($p) => [
-                    'user_id' => $p->user_id,
-                    'color'   => $p->color,
-                    'result'  => $p->result,
+                    'user_id'       => $p->user_id,
+                    'color'         => $p->color,
+                    'result'        => $p->result,
+                    'pawn_positions' => $p->pawn_positions,
                 ])
             ),
         ];
