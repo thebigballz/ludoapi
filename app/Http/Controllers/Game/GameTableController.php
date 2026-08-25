@@ -9,6 +9,7 @@ use App\Domain\Game\Actions\LeaveGameTable;
 use App\Domain\Game\Actions\MovePawn;
 use App\Domain\Game\Actions\RecordGameResult;
 use App\Domain\Game\Actions\RollDice;
+use App\Domain\Game\Actions\SkipTurn;
 use App\Domain\Game\DTOs\CreateTableDTO;
 use App\Domain\Game\DTOs\GameResultDTO;
 use App\Domain\Game\Exceptions\GameAlreadyStartedException;
@@ -35,9 +36,9 @@ class GameTableController extends Controller
         private readonly RecordGameResult $recordGameResult,
         private readonly RollDice         $rollDice,
         private readonly MovePawn         $movePawn,
+        private readonly SkipTurn         $skipTurn,
     ) {}
 
-    // List open tables — optionally filter by stake amount
     public function index(Request $request): JsonResponse
     {
         $tables = Game::where('status', 'waiting')
@@ -53,7 +54,6 @@ class GameTableController extends Controller
         ]);
     }
 
-    // Admin only — create a table
     public function create(CreateTableRequest $request): JsonResponse
     {
         $game = $this->createGameTable->execute(
@@ -66,7 +66,6 @@ class GameTableController extends Controller
         ], 201);
     }
 
-    // User joins an existing table
     public function join(JoinTableRequest $request): JsonResponse
     {
         $game = Game::findOrFail($request->game_id);
@@ -96,7 +95,6 @@ class GameTableController extends Controller
         return response()->json(['message' => 'Left table successfully.']);
     }
 
-    // Record game result — called by Firebase Cloud Function
     public function result(GameResultRequest $request): JsonResponse
     {
         try {
@@ -113,7 +111,6 @@ class GameTableController extends Controller
         ]);
     }
 
-    // Admin only — cancel a game
     public function cancel(Request $request, Game $game): JsonResponse
     {
         try {
@@ -167,6 +164,22 @@ class GameTableController extends Controller
                 'captured' => $result['captured'],
             ],
             'game' => new GameResource($result['game']),
+        ]);
+    }
+
+    public function skip(Request $request, Game $game): JsonResponse
+    {
+        try {
+            $game = $this->skipTurn->execute($game, $request->user());
+        } catch (InvalidGameStateException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Turn skipped because no legal move was available.',
+            'game' => new GameResource($game),
         ]);
     }
 }
