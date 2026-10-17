@@ -58,6 +58,45 @@ class FirebaseService
             ]);
     }
 
+    /**
+     * Repair missing Firebase membership for a player already in MySQL.
+     *
+     * Existing player status and pawn positions are preserved. Missing player
+     * or pawn records are initialized so reconnecting cannot reset a game.
+     */
+    public function ensurePlayerInRoom(string $roomId, int $userId, string $name, string $color): void
+    {
+        $playerRef = $this->roomRef($roomId)->getChild("players/user_{$userId}");
+        $player = $playerRef->getValue();
+
+        if ($player === null) {
+            $playerRef->set([
+                'user_id'      => $userId,
+                'name'         => $name,
+                'color'        => $color,
+                'is_ready'     => false,
+                'is_connected' => true,
+                'last_seen'    => $this->timestamp(),
+            ]);
+        } else {
+            $playerRef->update([
+                'is_connected' => true,
+                'last_seen'    => $this->timestamp(),
+            ]);
+        }
+
+        $pawnRef = $this->roomRef($roomId)->getChild("pawns/user_{$userId}");
+
+        if ($pawnRef->getValue() === null) {
+            $pawnRef->set([
+                'p1' => -1,
+                'p2' => -1,
+                'p3' => -1,
+                'p4' => -1,
+            ]);
+        }
+    }
+
     public function removePlayerFromRoom(string $roomId, int $userId): void
     {
         $this->roomRef($roomId)
