@@ -40,6 +40,16 @@ class JoinGameTable
             ->first();
 
         if ($existingPlayer) {
+            // MySQL membership may exist even if the earlier Firebase write
+            // failed. Repair missing Firebase records before returning so the
+            // client can pass the room's membership-based read rules.
+            $this->firebaseService->ensurePlayerInRoom(
+                $game->firebase_room_id,
+                $user->id,
+                $user->name,
+                $existingPlayer->color,
+            );
+
             return $existingPlayer;
         }
 
@@ -66,8 +76,8 @@ class JoinGameTable
                 $game
             );
 
-            // Keep Firebase room membership in sync with the authoritative
-            // MySQL game membership before the client opens its room listener.
+            // Keep Firebase room membership in sync with authoritative MySQL
+            // membership before the client opens its room listener.
             $this->firebaseService->addPlayerToRoom(
                 $game->firebase_room_id,
                 $user->id,
